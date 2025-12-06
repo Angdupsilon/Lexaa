@@ -1,38 +1,37 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="Lexaa-grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0ea5e9"/>
-      <stop offset="100%" stop-color="#6366f1"/>
-    </linearGradient>
-    <filter id="glow" filterUnits="userSpaceOnUse">
-      <feGaussianBlur stdDeviation="10" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-  </defs>
-  
-  <rect width="512" height="512" rx="120" fill="#0f172a"/>
-  
-  <g transform="translate(106, 106) scale(0.6)">
-    <!-- Main L Shape -->
-    <path d="M100 50 V 350 A 50 50 0 0 0 150 400 H 400" 
-          stroke="url(#Lexaa-grad)" 
-          stroke-width="80" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"/>
-          
-    <!-- Synapse Dot -->
-    <circle cx="400" cy="150" r="40" fill="#f43f5e">
-       <!-- Pulse animation for web usage -->
-       <animate attributeName="r" values="40;50;40" dur="3s" repeatCount="indefinite"/>
-       <animate attributeName="opacity" values="1;0.8;1" dur="3s" repeatCount="indefinite"/>
-    </circle>
-    
-    <!-- Connection Line -->
-    <path d="M400 190 V 350" 
-          stroke="#f43f5e" 
-          stroke-width="20" 
-          stroke-dasharray="40 20" 
-          stroke-opacity="0.5"
-          stroke-linecap="round"/>
-  </g>
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20010904//EN"
+ "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg version="1.0" xmlns="http://www.w3.org/2000/svg"
+ width="300.000000pt" height="300.000000pt" viewBox="0 0 300.000000 300.000000"
+ preserveAspectRatio="xMidYMid meet">
+<metadata>
+Created by potrace 1.10, written by Peter Selinger 2001-2011
+</metadata>
+<g transform="translate(0.000000,300.000000) scale(0.100000,-0.100000)"
+fill="#000000" stroke="none">
+<path d="M1594 2700 c-44 -10 -100 -46 -124 -80 -37 -52 -50 -110 -58 -265 -8
+-139 -11 -157 -35 -198 -47 -79 -139 -101 -215 -49 -54 36 -71 60 -127 175
+-57 117 -125 187 -200 206 -93 23 -174 -25 -193 -117 -22 -102 16 -181 142
+-295 92 -84 126 -139 126 -204 0 -50 -33 -101 -80 -126 -44 -23 -145 -18 -240
+13 -96 31 -199 37 -255 16 -105 -40 -123 -161 -34 -229 53 -40 108 -50 234
+-42 135 9 186 1 225 -32 23 -19 30 -33 30 -60 0 -56 -53 -100 -198 -163 -183
+-80 -251 -150 -252 -261 0 -56 30 -106 80 -131 94 -48 203 6 347 171 91 104
+128 132 185 138 37 4 46 1 68 -22 20 -21 25 -37 24 -74 -1 -63 -34 -122 -140
+-246 -111 -132 -139 -188 -139 -280 1 -142 92 -235 230 -235 68 0 110 17 164
+66 81 73 109 140 146 352 31 178 65 258 126 299 83 55 204 36 263 -41 13 -18
+45 -79 69 -134 57 -128 89 -184 141 -240 195 -213 509 -21 407 248 -28 73 -75
+131 -161 197 -41 32 -95 78 -120 103 -100 100 -90 242 20 298 60 30 114 28
+253 -8 200 -52 319 -38 396 45 47 51 55 76 49 151 -6 65 -41 116 -109 154 -38
+22 -56 25 -134 24 -82 0 -100 -4 -200 -43 -143 -56 -237 -66 -278 -30 -68 59
+-30 157 101 260 143 112 164 132 193 177 55 87 32 205 -46 238 -102 42 -206
+-24 -328 -213 -98 -150 -146 -186 -213 -158 -42 17 -68 71 -59 119 4 17 29 79
+56 137 60 128 77 205 59 269 -15 55 -76 120 -113 120 -14 0 -31 2 -39 4 -7 2
+-27 1 -44 -4z"/>
+<path d="M370 2113 c-59 -22 -77 -88 -38 -138 29 -38 113 -75 168 -75 61 0 90
+21 90 65 0 78 -145 175 -220 148z"/>
+<path d="M2285 1250 c-30 -33 -12 -84 49 -145 29 -29 71 -62 94 -74 147 -75
+267 62 147 167 -74 66 -249 97 -290 52z"/>
+<path d="M1532 664 c-47 -33 -68 -115 -50 -197 22 -106 106 -141 174 -73 31
+31 34 39 34 95 0 75 -30 145 -74 172 -38 23 -55 24 -84 3z"/>
+</g>
 </svg>
