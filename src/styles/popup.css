@@ -1,0 +1,508 @@
+:root {
+    --primary: #6366f1; /* Indigo 500 */
+    --primary-hover: #4f46e5;
+    --primary-light: #e0e7ff;
+    --secondary: #f1f5f9; /* Slate 100 */
+    --surface: #ffffff;
+    --text-main: #0f172a; /* Slate 900 */
+    --text-muted: #64748b; /* Slate 500 */
+    --border: #e2e8f0;
+    --success: #10b981;
+    --error: #ef4444;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    width: 380px;
+    min-height: 500px;
+    font-family: var(--font-family);
+    background-color: var(--secondary);
+    color: var(--text-main);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 20px;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    width: 36px;
+    height: 36px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.03em;
+}
+
+/* Card Common Styles */
+.card {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Settings */
+.settings-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+}
+
+.settings-group:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.settings-summary {
+    list-style: none;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.settings-summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-summary:hover {
+    background-color: var(--secondary);
+}
+
+.settings-summary span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.settings-summary .arrow {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+details[open] .settings-summary .arrow {
+    transform: rotate(180deg);
+}
+
+.settings-body {
+    padding: 0 16px;
+    background: var(--secondary);
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease;
+    max-height: 0;
+}
+
+/* When manually opened via JS or attribute, we handle height there. 
+   But we need a state for padding */
+details[open] .settings-body {
+    padding-bottom: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    max-height: none;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.row-input {
+    display: flex;
+    gap: 8px;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    color: var(--text-main);
+    background: var(--surface);
+    transition: all 0.2s;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.btn-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-icon:hover {
+    background: var(--primary-hover);
+}
+
+.btn-icon:active {
+    transform: scale(0.95);
+}
+
+/* Brain Jug */
+.brain-jug {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    color: white;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s;
+}
+
+.brain-jug:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.brain-jug-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.brain-icon {
+    font-size: 3rem;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.brain-content {
+    flex: 1;
+}
+
+.brain-label {
+    display: block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    opacity: 0.9;
+    margin-bottom: 4px;
+}
+
+.counter-box {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.main-count {
+    font-size: 2.5rem;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.increment {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    opacity: 0;
+}
+
+.increment.show {
+    animation: slideUpFade 0.9s forwards;
+}
+
+@keyframes slideUpFade {
+    0% { opacity: 0; transform: translateY(0) scale(0.9); }
+    20% { opacity: 1; transform: translateY(-5px) scale(1); }
+    100% { opacity: 0; transform: translateY(-20px) scale(1); }
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    margin-top: 8px;
+    font-weight: 500;
+    opacity: 0.95;
+}
+
+/* Add Word Section */
+.input-section {
+    background: var(--surface);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+}
+
+.input-wrapper {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-add {
+    width: 44px;
+    flex-shrink: 0;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-add:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.4);
+}
+
+.btn-add:active {
+    transform: translateY(0);
+}
+
+.status {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    min-height: 1.2em;
+    border-radius: 4px;
+}
+
+.status.success { color: var(--success); }
+.status.error { color: var(--error); }
+.status.info { color: var(--text-muted); }
+
+/* Process Button */
+.process-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--text-main);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-md);
+}
+
+.process-btn:hover {
+    background: #000000;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.process-btn:active {
+    transform: translateY(0);
+}
+
+/* Word List */
+.word-list-group {
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.section-header {
+    padding: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.section-header:hover {
+    background: var(--secondary);
+}
+
+.section-header::-webkit-details-marker {
+    display: none;
+}
+
+.section-header .arrow {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    transition: transform 0.3s ease;
+}
+
+details[open] .section-header .arrow {
+    transform: rotate(180deg);
+}
+
+/* Accordion Animation Wrapper */
+.accordion-wrapper {
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 0; /* Default closed for animation logic */
+}
+
+/* Because we will control height with JS for animation, 
+   but we need it to be visible if open by default without JS initially */
+details[open] .accordion-wrapper {
+    max-height: none; 
+}
+
+.list-scroll-container {
+    padding: 0 16px 16px 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.replacements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.replacement-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--secondary);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.replacement-item:hover {
+    background: white;
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+    transform: translateX(4px);
+}
+
+.replacement-item span {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.remove-btn {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+
+.remove-btn:hover {
+    color: var(--error);
+    border-color: #fecaca;
+    background: #fee2e2;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

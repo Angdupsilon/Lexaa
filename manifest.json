@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Lexaa",
+  "version": "0.1.0",
+  "description": "Transform your browsing into a language-learning playground by replacing web words with your custom vocabulary. Learn naturally as you surf!",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+} 

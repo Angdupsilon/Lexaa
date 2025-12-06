@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexaa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../styles/popup.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">
+                <img src="../../images/Lexaa.svg" alt="Lexaa Logo" class="logo" />
+                <h1>Lexaa</h1>
+            </div>
+        </header>
+
+        <!-- Settings Section -->
+        <details id="settingsDetails" class="settings-group">
+            <summary class="settings-summary">
+                <span><i class="fa fa-cog"></i> Settings</span>
+                <i class="fa fa-chevron-down arrow"></i>
+            </summary>
+            <div class="settings-body" id="settingsContent">
+                <div class="input-group">
+                    <label for="apiKey">Gemini API Key</label>
+                    <div class="row-input">
+                        <input type="password" id="apiKey" placeholder="Paste your API key">
+                        <button id="saveApiKey" class="btn-icon" aria-label="Save API Key">
+                            <i class="fa fa-save"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- Brain Jug -->
+        <div id="brainJugContainer" class="brain-jug">
+            <div class="brain-jug-inner">
+                <div class="brain-icon">🧠</div>
+                <div class="brain-content">
+                    <span class="brain-label">Knowledge Collected</span>
+                    <div id="brainJugCounter" class="counter-box">
+                        <span class="main-count">0</span>
+                        <span class="increment"></span>
+                    </div>
+                    <div id="brainJugProgress" class="progress-text">Start your journey!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Word Section -->
+        <section class="input-section">
+            <div class="input-wrapper">
+                <input type="text" id="replacementWord" placeholder="Add a word or phrase...">
+                <button id="addReplacement" class="btn-add" aria-label="Add Word">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+            <div id="status" class="status"></div>
+        </section>
+
+        <!-- Process Action -->
+        <button id="processPage" class="process-btn">
+            <i class="fa fa-bolt"></i> Process Page
+        </button>
+
+        <!-- Word List -->
+        <details id="wordListDetails" class="word-list-group" open>
+            <summary class="section-header">
+                <span>Your Vocabulary</span>
+                <i class="fa fa-chevron-down arrow"></i>
+            </summary>
+            <!-- Wrapper for JS animation -->
+            <div id="wordListContent" class="accordion-wrapper">
+                <div class="list-scroll-container">
+                    <div id="replacementsList" class="replacements-list"></div>
+                </div>
+            </div>
+        </details>
+    </div>
+    <script src="./popup.js"></script>
+</body>
+</html>
