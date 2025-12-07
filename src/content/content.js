@@ -149,6 +149,53 @@
     // Batch size for processing paragraphs (optimization: reduces API calls)
     const BATCH_SIZE = 5; // Process 5 paragraphs at a time
 
+    // Helper function to check if extension context is still valid
+    function isExtensionContextValid() {
+        try {
+            // Accessing chrome.runtime.id will throw if context is invalidated
+            return typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id !== undefined;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    // Helper function to safely use Chrome storage APIs
+    async function safeChromeStorageSet(data) {
+        if (!isExtensionContextValid()) {
+            console.warn('Extension context invalidated, cannot save to storage');
+            return Promise.reject(new Error('Extension context invalidated'));
+        }
+        try {
+            return await chrome.storage.local.set(data);
+        } catch (err) {
+            // Check if it's a context invalidated error
+            if (err.message && err.message.includes('Extension context invalidated')) {
+                console.warn('Extension context invalidated during storage operation');
+                return Promise.reject(err);
+            }
+            throw err;
+        }
+    }
+
+    // Helper function to safely send runtime messages
+    async function safeChromeRuntimeSendMessage(message) {
+        if (!isExtensionContextValid()) {
+            console.warn('Extension context invalidated, cannot send message');
+            return Promise.reject(new Error('Extension context invalidated'));
+        }
+        try {
+            return await chrome.runtime.sendMessage(message);
+        } catch (err) {
+            // Check if it's a context invalidated error or connection error
+            if (err.message && (err.message.includes('Extension context invalidated') || 
+                                err.message.includes('Could not establish connection'))) {
+                console.warn('Extension context invalidated during message send');
+                return Promise.reject(err);
+            }
+            throw err;
+        }
+    }
+
     function initializeBrainJugTracking() {
         try {
             // Create IntersectionObserver to watch replaced elements
@@ -174,27 +221,35 @@
                             // Check if we just reached 200 for the first time
                             if (dropsInJug === 200 && !hasReachedMax) {
                                 hasReachedMax = true;
-                                chrome.storage.local.set({ hasReachedMax: true }).catch(err => {
-                                    console.error('Error saving max reached state:', err);
+                                safeChromeStorageSet({ hasReachedMax: true }).catch(err => {
+                                    if (!err.message.includes('Extension context invalidated')) {
+                                        console.error('Error saving max reached state:', err);
+                                    }
                                 });
                             }
                             
                             jugObserver.unobserve(entry.target);
                             // Save to storage
-                            chrome.storage.local.set({ dropsInJug }).catch(err => {
-                                console.error('Error saving drops count:', err);
+                            safeChromeStorageSet({ dropsInJug }).catch(err => {
+                                if (!err.message.includes('Extension context invalidated')) {
+                                    console.error('Error saving drops count:', err);
+                                }
                             });
                             
                             // Send live update if popup is open
                             if (popupIsOpen) {
-                                chrome.runtime.sendMessage({
+                                safeChromeRuntimeSendMessage({
                                     type: 'BRAIN_JUG_UPDATE',
                                     count: dropsInJug,
                                     lastCount: previousCount
                                 }).catch(err => {
-                                    // Ignore errors if popup is closed
-                                    console.log('Popup closed, stopping live updates');
-                                    popupIsOpen = false;
+                                    // Ignore errors if popup is closed or context invalidated
+                                    if (err.message.includes('Extension context invalidated')) {
+                                        popupIsOpen = false;
+                                    } else {
+                                        console.log('Popup closed, stopping live updates');
+                                        popupIsOpen = false;
+                                    }
                                 });
                             }
                         }
@@ -358,64 +413,110 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 // Only mark as processed if not already processed
                 if (!result.alreadyProcessed) {
                     // Mark tab as processed
-                    chrome.storage.local.get('processedTabs', (storageResult) => {
-                        const processedTabs = storageResult.processedTabs || {};
-                        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                            if (tabs[0]) {
-                                processedTabs[tabs[0].id] = true;
-                                chrome.storage.local.set({ processedTabs });
+                    if (isExtensionContextValid()) {
+                        chrome.storage.local.get('processedTabs', (storageResult) => {
+                            if (!isExtensionContextValid()) return;
+                            const processedTabs = storageResult.processedTabs || {};
+                            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                                if (tabs[0] && isExtensionContextValid()) {
+                                    processedTabs[tabs[0].id] = true;
+                                    safeChromeStorageSet({ processedTabs }).catch(err => {
+                                        if (!err.message.includes('Extension context invalidated')) {
+                                            console.error('Error saving processed tabs:', err);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                        
+                        safeChromeRuntimeSendMessage({
+                            type: 'PROCESSING_COMPLETE',
+                            replacementsMade: result.replacementsMade
+                        }).catch(err => {
+                            if (!err.message.includes('Extension context invalidated')) {
+                                console.error('Error sending processing complete message:', err);
                             }
                         });
-                    });
-                    
-                    chrome.runtime.sendMessage({
-                        type: 'PROCESSING_COMPLETE',
-                        replacementsMade: result.replacementsMade
-                    });
+                    }
                 } else {
                     // Send response indicating already processed
-                    chrome.runtime.sendMessage({
-                        type: 'PROCESSING_COMPLETE',
-                        replacementsMade: 0,
-                        alreadyProcessed: true
-                    });
+                    if (isExtensionContextValid()) {
+                        safeChromeRuntimeSendMessage({
+                            type: 'PROCESSING_COMPLETE',
+                            replacementsMade: 0,
+                            alreadyProcessed: true
+                        }).catch(err => {
+                            if (!err.message.includes('Extension context invalidated')) {
+                                console.error('Error sending processing complete message:', err);
+                            }
+                        });
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error processing page:', error);
-                chrome.runtime.sendMessage({
-                    type: 'PROCESSING_ERROR',
-                    error: error.message
-                });
+                if (isExtensionContextValid()) {
+                    safeChromeRuntimeSendMessage({
+                        type: 'PROCESSING_ERROR',
+                        error: error.message
+                    }).catch(err => {
+                        if (!err.message.includes('Extension context invalidated')) {
+                            console.error('Error sending processing error message:', err);
+                        }
+                    });
+                }
             });
         return true; // Keep message channel open for async response
     } else if (message.action === 'REVERT_PAGE') {
         const result = revertPage();
         // Clear processed state for this tab
-        chrome.storage.local.get('processedTabs', (storageResult) => {
-            const processedTabs = storageResult.processedTabs || {};
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]) {
-                    delete processedTabs[tabs[0].id];
-                    chrome.storage.local.set({ processedTabs });
+        if (isExtensionContextValid()) {
+            chrome.storage.local.get('processedTabs', (storageResult) => {
+                if (!isExtensionContextValid()) return;
+                const processedTabs = storageResult.processedTabs || {};
+                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs[0] && isExtensionContextValid()) {
+                        delete processedTabs[tabs[0].id];
+                        safeChromeStorageSet({ processedTabs }).catch(err => {
+                            if (!err.message.includes('Extension context invalidated')) {
+                                console.error('Error clearing processed tabs:', err);
+                            }
+                        });
+                    }
+                });
+            });
+            
+            safeChromeRuntimeSendMessage({
+                type: 'REVERT_COMPLETE',
+                revertedCount: result.revertedCount
+            }).catch(err => {
+                if (!err.message.includes('Extension context invalidated')) {
+                    console.error('Error sending revert complete message:', err);
                 }
             });
-        });
-        
-        chrome.runtime.sendMessage({
-            type: 'REVERT_COMPLETE',
-            revertedCount: result.revertedCount
-        });
+        }
     } else if (message.command === 'showJugAnimation') {
             // Calculate incremental drops since last popup open
+            if (!isExtensionContextValid()) {
+                sendResponse({ count: dropsInJug });
+                return true;
+            }
             chrome.storage.local.get(['lastJugCount'], (result) => {
+                if (!isExtensionContextValid()) {
+                    sendResponse({ count: dropsInJug });
+                    return;
+                }
                 let lastCount = result.lastJugCount || 0;
                 let increment = dropsInJug - lastCount;
                 increment = Math.max(0, increment); // protect against negative
                 let dropsToAnimate = Math.min(50, increment); // still performance capped
                 
                 animateJugDrops(dropsToAnimate);
-                chrome.storage.local.set({ lastJugCount: dropsInJug });
+                safeChromeStorageSet({ lastJugCount: dropsInJug }).catch(err => {
+                    if (!err.message.includes('Extension context invalidated')) {
+                        console.error('Error saving lastJugCount:', err);
+                    }
+                });
                 sendResponse({ count: dropsInJug });
             });
             return true; // for async
@@ -439,38 +540,53 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Don't initialize brain jug tracking on load - wait for replacements to be made
 
     // Load saved drops count from storage
-    chrome.storage.local.get(['dropsInJug', 'hasReachedMax', 'lastResetDate'], (result) => {
-        if (result.dropsInJug !== undefined) {
-            dropsInJug = result.dropsInJug;
-        }
-        if (result.hasReachedMax !== undefined) {
-            hasReachedMax = result.hasReachedMax;
-        }
-        
-        // Check for daily reset
-        const today = new Date().toDateString();
-        const lastResetDate = result.lastResetDate;
-        
-        if (lastResetDate !== today) {
-            // It's a new day, reset the counter
-            dropsInJug = 0;
-            hasReachedMax = false;
-            observedElements.clear(); // Reset observed elements for new day
-            chrome.storage.local.set({ 
-                dropsInJug: 0, 
-                hasReachedMax: false, 
-                lastResetDate: today,
-                lastJugCount: 0 
-            });
-        }
-        
-        // Initialize lastJugCount if it doesn't exist
-        chrome.storage.local.get(['lastJugCount'], (lastResult) => {
-            if (lastResult.lastJugCount === undefined) {
-                chrome.storage.local.set({ lastJugCount: dropsInJug });
+    if (isExtensionContextValid()) {
+        chrome.storage.local.get(['dropsInJug', 'hasReachedMax', 'lastResetDate'], (result) => {
+            if (!isExtensionContextValid()) return; // Check again in callback
+            
+            if (result.dropsInJug !== undefined) {
+                dropsInJug = result.dropsInJug;
+            }
+            if (result.hasReachedMax !== undefined) {
+                hasReachedMax = result.hasReachedMax;
+            }
+            
+            // Check for daily reset
+            const today = new Date().toDateString();
+            const lastResetDate = result.lastResetDate;
+            
+            if (lastResetDate !== today) {
+                // It's a new day, reset the counter
+                dropsInJug = 0;
+                hasReachedMax = false;
+                observedElements.clear(); // Reset observed elements for new day
+                safeChromeStorageSet({ 
+                    dropsInJug: 0, 
+                    hasReachedMax: false, 
+                    lastResetDate: today,
+                    lastJugCount: 0 
+                }).catch(err => {
+                    if (!err.message.includes('Extension context invalidated')) {
+                        console.error('Error resetting drops count:', err);
+                    }
+                });
+            }
+            
+            // Initialize lastJugCount if it doesn't exist
+            if (isExtensionContextValid()) {
+                chrome.storage.local.get(['lastJugCount'], (lastResult) => {
+                    if (!isExtensionContextValid()) return; // Check again in callback
+                    if (lastResult.lastJugCount === undefined) {
+                        safeChromeStorageSet({ lastJugCount: dropsInJug }).catch(err => {
+                            if (!err.message.includes('Extension context invalidated')) {
+                                console.error('Error initializing lastJugCount:', err);
+                            }
+                        });
+                    }
+                });
             }
         });
-    });
+    }
 
 // Pre-filter: Quick check if text might contain any of the concepts
 function mightContainConcept(text, replacements) {
@@ -503,14 +619,38 @@ function mightContainConcept(text, replacements) {
 
 // Process the entire page with optimized batching
 async function processPage(replacements) {
+    // Check if extension context is still valid
+    if (!isExtensionContextValid()) {
+        console.warn('Extension context invalidated, cannot process page');
+        return { replacementsMade: 0, alreadyProcessed: false };
+    }
+
     // Check if page is already processed
-    const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+    let tabResult;
+    try {
+        tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+    } catch (err) {
+        if (err.message && err.message.includes('Extension context invalidated')) {
+            console.warn('Extension context invalidated during tab query');
+            return { replacementsMade: 0, alreadyProcessed: false };
+        }
+        throw err;
+    }
+    
     if (tabResult[0]) {
-        const storageResult = await chrome.storage.local.get('processedTabs');
-        const processedTabs = storageResult.processedTabs || {};
-        if (processedTabs[tabResult[0].id]) {
-            // Page is already processed, don't reprocess
-            return { replacementsMade: 0, alreadyProcessed: true };
+        try {
+            const storageResult = await chrome.storage.local.get('processedTabs');
+            const processedTabs = storageResult.processedTabs || {};
+            if (processedTabs[tabResult[0].id]) {
+                // Page is already processed, don't reprocess
+                return { replacementsMade: 0, alreadyProcessed: true };
+            }
+        } catch (err) {
+            if (err.message && err.message.includes('Extension context invalidated')) {
+                console.warn('Extension context invalidated during storage get');
+                return { replacementsMade: 0, alreadyProcessed: false };
+            }
+            throw err;
         }
     }
     
@@ -542,8 +682,18 @@ async function processPage(replacements) {
         const batchTexts = batch.map(block => block.textContent);
         
         try {
+            // Check if extension context is still valid before API call
+            if (!isExtensionContextValid()) {
+                console.warn('Extension context invalidated during batch processing');
+                // Mark all blocks in batch as processed to avoid infinite loops
+                for (let j = 0; j < batch.length; j++) {
+                    processedElements.add(batch[j]);
+                }
+                continue;
+            }
+
             // Single API call for entire batch with all rules
-            const result = await chrome.runtime.sendMessage({
+            const result = await safeChromeRuntimeSendMessage({
                 action: 'ANALYZE_BATCH_WITH_AI',
                 textBlocks: batchTexts,
                 replacements: replacements
@@ -712,36 +862,79 @@ let autoProcessTimeout = null;
 
 async function checkAndAutoProcess() {
     try {
+        // Check if extension context is still valid
+        if (!isExtensionContextValid()) {
+            console.warn('Extension context invalidated, skipping auto-process');
+            return;
+        }
+
         // Check if auto-processing is enabled
-        const result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
+        let result;
+        try {
+            result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
+        } catch (err) {
+            if (err.message && err.message.includes('Extension context invalidated')) {
+                console.warn('Extension context invalidated during storage get');
+                return;
+            }
+            throw err;
+        }
         
         if (!result.autoProcess || !result.replacements || result.replacements.length === 0 || !result.apiKey) {
             return; // Auto-processing disabled, no replacements, or no API key
         }
         
         // Check if page is already processed before processing
-        const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tabResult[0]) {
-            const storageResult = await chrome.storage.local.get('processedTabs');
-            const processedTabs = storageResult.processedTabs || {};
-            if (processedTabs[tabResult[0].id]) {
-                // Page is already processed, don't reprocess
+        let tabResult;
+        try {
+            tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+        } catch (err) {
+            if (err.message && err.message.includes('Extension context invalidated')) {
+                console.warn('Extension context invalidated during tab query');
                 return;
+            }
+            throw err;
+        }
+        
+        if (tabResult[0]) {
+            try {
+                const storageResult = await chrome.storage.local.get('processedTabs');
+                const processedTabs = storageResult.processedTabs || {};
+                if (processedTabs[tabResult[0].id]) {
+                    // Page is already processed, don't reprocess
+                    return;
+                }
+            } catch (err) {
+                if (err.message && err.message.includes('Extension context invalidated')) {
+                    console.warn('Extension context invalidated during storage get');
+                    return;
+                }
+                throw err;
             }
         }
         
         // Function to process and mark as processed
         const processAndMark = async () => {
+            if (!isExtensionContextValid()) {
+                console.warn('Extension context invalidated, cannot process page');
+                return { replacementsMade: 0, alreadyProcessed: false };
+            }
+
             const processResult = await processPage(result.replacements);
             // Only mark as processed if not already processed
-            if (!processResult.alreadyProcessed) {
+            if (!processResult.alreadyProcessed && isExtensionContextValid()) {
                 // Mark tab as processed
                 chrome.storage.local.get('processedTabs', (storageResult) => {
+                    if (!isExtensionContextValid()) return;
                     const processedTabs = storageResult.processedTabs || {};
                     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        if (tabs[0]) {
+                        if (tabs[0] && isExtensionContextValid()) {
                             processedTabs[tabs[0].id] = true;
-                            chrome.storage.local.set({ processedTabs });
+                            safeChromeStorageSet({ processedTabs }).catch(err => {
+                                if (!err.message.includes('Extension context invalidated')) {
+                                    console.error('Error saving processed tabs:', err);
+                                }
+                            });
                         }
                     });
                 });
@@ -771,6 +964,11 @@ function setupAutoProcessObserver() {
     if (autoProcessObserver || !document.body) return;
     
     autoProcessObserver = new MutationObserver(async (mutations) => {
+        // Check if extension context is still valid
+        if (!isExtensionContextValid()) {
+            return;
+        }
+
         // Check if significant content was added
         const hasSignificantChanges = mutations.some(mutation => {
             return Array.from(mutation.addedNodes).some(node => 
@@ -780,32 +978,68 @@ function setupAutoProcessObserver() {
         });
         
         if (hasSignificantChanges) {
-            const result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
+            let result;
+            try {
+                result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
+            } catch (err) {
+                if (err.message && err.message.includes('Extension context invalidated')) {
+                    console.warn('Extension context invalidated during storage get in observer');
+                    return;
+                }
+                throw err;
+            }
+            
             if (result.autoProcess && result.replacements && result.replacements.length > 0 && result.apiKey) {
                 // Check if page is already processed
-                const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tabResult[0]) {
-                    const storageResult = await chrome.storage.local.get('processedTabs');
-                    const processedTabs = storageResult.processedTabs || {};
-                    if (processedTabs[tabResult[0].id]) {
-                        // Page is already processed, don't reprocess
+                let tabResult;
+                try {
+                    tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                } catch (err) {
+                    if (err.message && err.message.includes('Extension context invalidated')) {
+                        console.warn('Extension context invalidated during tab query in observer');
                         return;
+                    }
+                    throw err;
+                }
+                
+                if (tabResult[0]) {
+                    try {
+                        const storageResult = await chrome.storage.local.get('processedTabs');
+                        const processedTabs = storageResult.processedTabs || {};
+                        if (processedTabs[tabResult[0].id]) {
+                            // Page is already processed, don't reprocess
+                            return;
+                        }
+                    } catch (err) {
+                        if (err.message && err.message.includes('Extension context invalidated')) {
+                            console.warn('Extension context invalidated during storage get in observer');
+                            return;
+                        }
+                        throw err;
                     }
                 }
                 
                 // Debounce: wait 2 seconds after last change
                 clearTimeout(autoProcessTimeout);
                 autoProcessTimeout = setTimeout(async () => {
+                    if (!isExtensionContextValid()) {
+                        return;
+                    }
                     const processResult = await processPage(result.replacements);
                     // Only mark as processed if not already processed
-                    if (!processResult.alreadyProcessed) {
+                    if (!processResult.alreadyProcessed && isExtensionContextValid()) {
                         // Mark tab as processed
                         chrome.storage.local.get('processedTabs', (storageResult) => {
+                            if (!isExtensionContextValid()) return;
                             const processedTabs = storageResult.processedTabs || {};
                             chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                                if (tabs[0]) {
+                                if (tabs[0] && isExtensionContextValid()) {
                                     processedTabs[tabs[0].id] = true;
-                                    chrome.storage.local.set({ processedTabs });
+                                    safeChromeStorageSet({ processedTabs }).catch(err => {
+                                        if (!err.message.includes('Extension context invalidated')) {
+                                            console.error('Error saving processed tabs:', err);
+                                        }
+                                    });
                                 }
                             });
                         });
@@ -826,19 +1060,42 @@ checkAndAutoProcess();
 
 // Also listen for storage changes to re-process if setting changes
 chrome.storage.onChanged.addListener((changes, areaName) => {
+    // Check if extension context is still valid
+    if (!isExtensionContextValid()) {
+        return;
+    }
+
     if (areaName === 'sync') {
         if (changes.autoProcess && changes.autoProcess.newValue) {
             // Auto-process was enabled, check and process
             chrome.storage.sync.get(['replacements', 'apiKey'], async (result) => {
+                if (!isExtensionContextValid()) return;
                 if (result.replacements && result.replacements.length > 0 && result.apiKey) {
                     // Check if page is already processed
-                    const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                    let tabResult;
+                    try {
+                        tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                    } catch (err) {
+                        if (err.message && err.message.includes('Extension context invalidated')) {
+                            console.warn('Extension context invalidated during tab query in storage listener');
+                            return;
+                        }
+                        throw err;
+                    }
                     if (tabResult[0]) {
-                        const storageResult = await chrome.storage.local.get('processedTabs');
-                        const processedTabs = storageResult.processedTabs || {};
-                        if (!processedTabs[tabResult[0].id]) {
-                            // Only process if not already processed
-                            await processPage(result.replacements);
+                        try {
+                            const storageResult = await chrome.storage.local.get('processedTabs');
+                            const processedTabs = storageResult.processedTabs || {};
+                            if (!processedTabs[tabResult[0].id]) {
+                                // Only process if not already processed
+                                await processPage(result.replacements);
+                            }
+                        } catch (err) {
+                            if (err.message && err.message.includes('Extension context invalidated')) {
+                                console.warn('Extension context invalidated during storage get in storage listener');
+                                return;
+                            }
+                            throw err;
                         }
                     }
                     setupAutoProcessObserver();
@@ -854,15 +1111,33 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
         } else if (changes.replacements && changes.replacements.newValue) {
             // Replacements changed, re-process if auto-process is enabled
             chrome.storage.sync.get(['autoProcess', 'apiKey'], async (result) => {
+                if (!isExtensionContextValid()) return;
                 if (result.autoProcess && changes.replacements.newValue.length > 0 && result.apiKey) {
                     // Check if page is already processed
-                    const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                    let tabResult;
+                    try {
+                        tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                    } catch (err) {
+                        if (err.message && err.message.includes('Extension context invalidated')) {
+                            console.warn('Extension context invalidated during tab query in storage listener');
+                            return;
+                        }
+                        throw err;
+                    }
                     if (tabResult[0]) {
-                        const storageResult = await chrome.storage.local.get('processedTabs');
-                        const processedTabs = storageResult.processedTabs || {};
-                        if (!processedTabs[tabResult[0].id]) {
-                            // Only process if not already processed
-                            await processPage(changes.replacements.newValue);
+                        try {
+                            const storageResult = await chrome.storage.local.get('processedTabs');
+                            const processedTabs = storageResult.processedTabs || {};
+                            if (!processedTabs[tabResult[0].id]) {
+                                // Only process if not already processed
+                                await processPage(changes.replacements.newValue);
+                            }
+                        } catch (err) {
+                            if (err.message && err.message.includes('Extension context invalidated')) {
+                                console.warn('Extension context invalidated during storage get in storage listener');
+                                return;
+                            }
+                            throw err;
                         }
                     }
                 }
