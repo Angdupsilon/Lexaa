@@ -34,6 +34,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
         return true;
     }
+    if (message.action === 'GET_CURRENT_TAB_ID') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (chrome.runtime.lastError) {
+                sendResponse({ error: chrome.runtime.lastError.message });
+            } else if (tabs && tabs[0]) {
+                sendResponse({ tabId: tabs[0].id });
+            } else {
+                sendResponse({ error: 'No active tab found' });
+            }
+        });
+        return true; // Required for async sendResponse
+    }
 });
 
 // Analyze text using Gemini API (legacy single-rule version, kept for backward compatibility)
