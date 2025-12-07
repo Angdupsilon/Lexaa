@@ -488,18 +488,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             const processBtnText = processPageBtn.querySelector('.process-btn-text');
             
-            if (isProcessed) {
-                processPageBtn.classList.add('processed');
-                processBtnText.textContent = 'Processed';
-            } else {
-                processPageBtn.classList.remove('processed');
-                processBtnText.textContent = 'Process Page';
-            }
-            
             if (autoProcessEnabled) {
                 processPageBtn.classList.add('auto-process-enabled');
+                if (!isProcessed) {
+                    processBtnText.textContent = 'Automatic';
+                } else {
+                    processBtnText.textContent = 'Processed';
+                }
             } else {
                 processPageBtn.classList.remove('auto-process-enabled');
+                if (isProcessed) {
+                    processPageBtn.classList.add('processed');
+                    processBtnText.textContent = 'Processed';
+                } else {
+                    processPageBtn.classList.remove('processed');
+                    processBtnText.textContent = 'Process Page';
+                }
             }
         } catch (error) {
             console.error('Error updating process button state:', error);
