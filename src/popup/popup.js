@@ -384,12 +384,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             await chrome.storage.local.set({ autoProcess: autoProcessCheckbox.checked });
             // Update toggle card visual state
             updateToggleCardState();
-            showStatus(
-                autoProcessCheckbox.checked 
-                    ? 'Auto-processing enabled' 
-                    : 'Auto-processing disabled', 
-                'success'
-            );
             // Update button styling
             updateProcessButtonState();
         } catch (error) {
