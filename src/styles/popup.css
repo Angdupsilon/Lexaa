@@ -379,34 +379,221 @@ input:focus {
     gap: 10px;
 }
 
-.process-toggle-wrapper {
+/* Modern Toggle Card */
+.modern-toggle-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.modern-toggle-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-md);
+    padding: 2px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #a855f7 50%, #ec4899 75%, #f472b6 100%);
+    background-size: 200% 200%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.modern-toggle-card.active::before {
+    opacity: 1;
+    animation: flowGradient 8s ease-in-out infinite;
+}
+
+.modern-toggle-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.modern-toggle {
     display: flex;
-    justify-content: flex-end;
-}
-
-.checkbox-label-inline {
-    display: flex !important;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
     cursor: pointer;
-    margin: 0 !important;
-    text-transform: none !important;
-    font-weight: 500 !important;
-    font-size: 0.85rem !important;
-    color: var(--text-main) !important;
-    letter-spacing: normal !important;
-    padding: 4px 0;
-}
-
-.checkbox-label-inline input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-    cursor: pointer;
-    accent-color: var(--primary);
-}
-
-.checkbox-label-inline span {
     user-select: none;
+}
+
+/* Toggle Switch */
+.toggle-switch-wrapper {
+    flex-shrink: 0;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: #e2e8f0;
+    border-radius: 14px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.toggle-knob {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+.toggle-slider::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(0);
+    transition: transform 0.4s;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+}
+
+#autoProcess:checked + .toggle-slider {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #a855f7 50%, #ec4899 75%, #f472b6 100%);
+    background-size: 200% 200%;
+    animation: flowGradient 8s ease-in-out infinite;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+#autoProcess:checked + .toggle-slider .toggle-knob {
+    transform: translateX(24px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    animation: toggleBounce 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+#autoProcess:active + .toggle-slider::after {
+    transform: translate(-50%, -50%) scale(2);
+    transition: transform 0s;
+}
+
+@keyframes toggleBounce {
+    0% { transform: translateX(2px); }
+    50% { transform: translateX(26px); }
+    100% { transform: translateX(24px); }
+}
+
+/* Toggle Content */
+.toggle-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toggle-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-icon {
+    font-size: 1rem;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.toggle-icon::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: rgba(139, 92, 246, 0.2);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s;
+    z-index: -1;
+}
+
+.modern-toggle-card.active .toggle-icon {
+    color: #8b5cf6;
+    transform: rotate(15deg) scale(1.1);
+}
+
+.modern-toggle-card.active .toggle-icon::after {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
+}
+
+.toggle-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    transition: color 0.3s;
+    flex: 1;
+}
+
+.modern-toggle-card.active .toggle-title {
+    color: #6366f1;
+}
+
+.status-indicator {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: #64748b;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 36px;
+    text-align: center;
+}
+
+.modern-toggle-card.active .status-indicator {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+}
+
+.modern-toggle-card.active .status-indicator::after {
+    content: 'ON';
+}
+
+.modern-toggle-card:not(.active) .status-indicator::after {
+    content: 'OFF';
+}
+
+.toggle-description {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+    transition: color 0.3s;
+}
+
+.modern-toggle-card.active .toggle-description {
+    color: #8b5cf6;
 }
 
 /* Process Button */

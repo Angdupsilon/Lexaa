@@ -67,10 +67,22 @@
 
         <!-- Process Action -->
         <div class="process-section">
-            <div class="process-toggle-wrapper">
-                <label for="autoProcess" class="checkbox-label-inline">
-                    <input type="checkbox" id="autoProcess" aria-label="Automatically process pages">
-                    <span>Auto-process</span>
+            <div class="modern-toggle-card">
+                <label class="modern-toggle" for="autoProcess">
+                    <div class="toggle-switch-wrapper">
+                        <input type="checkbox" id="autoProcess" aria-label="Automatically process pages" hidden>
+                        <span class="toggle-slider">
+                            <span class="toggle-knob"></span>
+                        </span>
+                    </div>
+                    <div class="toggle-content">
+                        <div class="toggle-header">
+                            <i class="fa fa-magic toggle-icon"></i>
+                            <span class="toggle-title">Auto-process</span>
+                            <span class="status-indicator">OFF</span>
+                        </div>
+                        <p class="toggle-description">Automatically process pages on visit</p>
+                    </div>
                 </label>
             </div>
             <button id="processPage" class="process-btn">

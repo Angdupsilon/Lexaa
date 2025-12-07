@@ -344,6 +344,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     saveApiKeyBtn.addEventListener('click', saveApiKey);
 
+    // Update toggle card active state
+    function updateToggleCardState() {
+        const toggleCard = document.querySelector('.modern-toggle-card');
+        if (toggleCard) {
+            if (autoProcessCheckbox.checked) {
+                toggleCard.classList.add('active');
+            } else {
+                toggleCard.classList.remove('active');
+            }
+        }
+    }
+
     // Load auto-process setting from storage
     async function loadAutoProcessSetting() {
         try {
@@ -357,6 +369,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else if (localResult.autoProcess !== undefined) {
                 await chrome.storage.sync.set({ autoProcess: localResult.autoProcess });
             }
+            // Update toggle card visual state
+            updateToggleCardState();
         } catch (error) {
             console.error('Error loading auto-process setting:', error);
         }
@@ -368,6 +382,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             await chrome.storage.sync.set({ autoProcess: autoProcessCheckbox.checked });
             // Also save to local for quick access
             await chrome.storage.local.set({ autoProcess: autoProcessCheckbox.checked });
+            // Update toggle card visual state
+            updateToggleCardState();
             showStatus(
                 autoProcessCheckbox.checked 
                     ? 'Auto-processing enabled' 
