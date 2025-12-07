@@ -575,17 +575,6 @@ input:focus {
     transform: translateY(0);
 }
 
-.process-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.process-btn:disabled:hover {
-    transform: none;
-    box-shadow: var(--shadow-md);
-}
-
 /* When processed (and NOT auto-process), button is black */
 .process-btn.processed:not(.auto-process-enabled) {
     background: #000000;
