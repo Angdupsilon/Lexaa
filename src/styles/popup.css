@@ -452,7 +452,7 @@ input:focus {
 
 /* Auto-process enabled: animated flowing gradient like HomePod Mini */
 .process-btn.auto-process-enabled {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #d946ef 60%, #ec4899 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 25%, #a855f7 50%, #ec4899 75%, #f472b6 100%);
     background-size: 200% 200%;
     border: 2px solid rgba(255, 255, 255, 0.2);
     animation: flowGradient 8s ease-in-out infinite;
