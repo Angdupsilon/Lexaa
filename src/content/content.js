@@ -144,6 +144,7 @@
     const observedElements = new Set();
     const processedElements = new Set();
     let popupIsOpen = false; // Track if popup is open for live updates
+    let brainJugInitialized = false; // Track if brain jug tracking has been initialized
     
     // Batch size for processing paragraphs (optimization: reduces API calls)
     const BATCH_SIZE = 5; // Process 5 paragraphs at a time
@@ -354,21 +355,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'PROCESS_PAGE_TEXT') {
         processPage(message.replacements)
             .then(result => {
-                // Mark tab as processed
-                chrome.storage.local.get('processedTabs', (result) => {
-                    const processedTabs = result.processedTabs || {};
-                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        if (tabs[0]) {
-                            processedTabs[tabs[0].id] = true;
-                            chrome.storage.local.set({ processedTabs });
-                        }
+                // Only mark as processed if not already processed
+                if (!result.alreadyProcessed) {
+                    // Mark tab as processed
+                    chrome.storage.local.get('processedTabs', (storageResult) => {
+                        const processedTabs = storageResult.processedTabs || {};
+                        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                            if (tabs[0]) {
+                                processedTabs[tabs[0].id] = true;
+                                chrome.storage.local.set({ processedTabs });
+                            }
+                        });
                     });
-                });
-                
-                chrome.runtime.sendMessage({
-                    type: 'PROCESSING_COMPLETE',
-                    replacementsMade: result.replacementsMade
-                });
+                    
+                    chrome.runtime.sendMessage({
+                        type: 'PROCESSING_COMPLETE',
+                        replacementsMade: result.replacementsMade
+                    });
+                } else {
+                    // Send response indicating already processed
+                    chrome.runtime.sendMessage({
+                        type: 'PROCESSING_COMPLETE',
+                        replacementsMade: 0,
+                        alreadyProcessed: true
+                    });
+                }
             })
             .catch(error => {
                 console.error('Error processing page:', error);
@@ -377,7 +388,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     error: error.message
                 });
             });
-        // No return true needed - we're not sending a response via sendResponse
+        return true; // Keep message channel open for async response
     } else if (message.action === 'REVERT_PAGE') {
         const result = revertPage();
         // Clear processed state for this tab
@@ -425,8 +436,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
     });
 
-    // Initialize brain jug tracking when content script loads
-    initializeBrainJugTracking();
+    // Don't initialize brain jug tracking on load - wait for replacements to be made
 
     // Load saved drops count from storage
     chrome.storage.local.get(['dropsInJug', 'hasReachedMax', 'lastResetDate'], (result) => {
@@ -493,6 +503,23 @@ function mightContainConcept(text, replacements) {
 
 // Process the entire page with optimized batching
 async function processPage(replacements) {
+    // Check if page is already processed
+    const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabResult[0]) {
+        const storageResult = await chrome.storage.local.get('processedTabs');
+        const processedTabs = storageResult.processedTabs || {};
+        if (processedTabs[tabResult[0].id]) {
+            // Page is already processed, don't reprocess
+            return { replacementsMade: 0, alreadyProcessed: true };
+        }
+    }
+    
+    // Initialize brain jug tracking when replacements are about to be made
+    if (!brainJugInitialized) {
+        initializeBrainJugTracking();
+        brainJugInitialized = true;
+    }
+    
     let replacementsMade = 0;
     const textBlocks = findTextBlocks();
     
@@ -692,19 +719,33 @@ async function checkAndAutoProcess() {
             return; // Auto-processing disabled, no replacements, or no API key
         }
         
+        // Check if page is already processed before processing
+        const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabResult[0]) {
+            const storageResult = await chrome.storage.local.get('processedTabs');
+            const processedTabs = storageResult.processedTabs || {};
+            if (processedTabs[tabResult[0].id]) {
+                // Page is already processed, don't reprocess
+                return;
+            }
+        }
+        
         // Function to process and mark as processed
         const processAndMark = async () => {
             const processResult = await processPage(result.replacements);
-            // Mark tab as processed
-            chrome.storage.local.get('processedTabs', (storageResult) => {
-                const processedTabs = storageResult.processedTabs || {};
-                chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    if (tabs[0]) {
-                        processedTabs[tabs[0].id] = true;
-                        chrome.storage.local.set({ processedTabs });
-                    }
+            // Only mark as processed if not already processed
+            if (!processResult.alreadyProcessed) {
+                // Mark tab as processed
+                chrome.storage.local.get('processedTabs', (storageResult) => {
+                    const processedTabs = storageResult.processedTabs || {};
+                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                        if (tabs[0]) {
+                            processedTabs[tabs[0].id] = true;
+                            chrome.storage.local.set({ processedTabs });
+                        }
+                    });
                 });
-            });
+            }
             return processResult;
         };
         
@@ -741,20 +782,34 @@ function setupAutoProcessObserver() {
         if (hasSignificantChanges) {
             const result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
             if (result.autoProcess && result.replacements && result.replacements.length > 0 && result.apiKey) {
+                // Check if page is already processed
+                const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (tabResult[0]) {
+                    const storageResult = await chrome.storage.local.get('processedTabs');
+                    const processedTabs = storageResult.processedTabs || {};
+                    if (processedTabs[tabResult[0].id]) {
+                        // Page is already processed, don't reprocess
+                        return;
+                    }
+                }
+                
                 // Debounce: wait 2 seconds after last change
                 clearTimeout(autoProcessTimeout);
                 autoProcessTimeout = setTimeout(async () => {
-                    await processPage(result.replacements);
-                    // Mark tab as processed
-                    chrome.storage.local.get('processedTabs', (storageResult) => {
-                        const processedTabs = storageResult.processedTabs || {};
-                        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                            if (tabs[0]) {
-                                processedTabs[tabs[0].id] = true;
-                                chrome.storage.local.set({ processedTabs });
-                            }
+                    const processResult = await processPage(result.replacements);
+                    // Only mark as processed if not already processed
+                    if (!processResult.alreadyProcessed) {
+                        // Mark tab as processed
+                        chrome.storage.local.get('processedTabs', (storageResult) => {
+                            const processedTabs = storageResult.processedTabs || {};
+                            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                                if (tabs[0]) {
+                                    processedTabs[tabs[0].id] = true;
+                                    chrome.storage.local.set({ processedTabs });
+                                }
+                            });
                         });
-                    });
+                    }
                 }, 2000);
             }
         }
@@ -774,9 +829,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'sync') {
         if (changes.autoProcess && changes.autoProcess.newValue) {
             // Auto-process was enabled, check and process
-            chrome.storage.sync.get(['replacements', 'apiKey'], (result) => {
+            chrome.storage.sync.get(['replacements', 'apiKey'], async (result) => {
                 if (result.replacements && result.replacements.length > 0 && result.apiKey) {
-                    processPage(result.replacements);
+                    // Check if page is already processed
+                    const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (tabResult[0]) {
+                        const storageResult = await chrome.storage.local.get('processedTabs');
+                        const processedTabs = storageResult.processedTabs || {};
+                        if (!processedTabs[tabResult[0].id]) {
+                            // Only process if not already processed
+                            await processPage(result.replacements);
+                        }
+                    }
                     setupAutoProcessObserver();
                 }
             });
@@ -789,9 +853,18 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
             clearTimeout(autoProcessTimeout);
         } else if (changes.replacements && changes.replacements.newValue) {
             // Replacements changed, re-process if auto-process is enabled
-            chrome.storage.sync.get(['autoProcess', 'apiKey'], (result) => {
+            chrome.storage.sync.get(['autoProcess', 'apiKey'], async (result) => {
                 if (result.autoProcess && changes.replacements.newValue.length > 0 && result.apiKey) {
-                    processPage(changes.replacements.newValue);
+                    // Check if page is already processed
+                    const tabResult = await chrome.tabs.query({ active: true, currentWindow: true });
+                    if (tabResult[0]) {
+                        const storageResult = await chrome.storage.local.get('processedTabs');
+                        const processedTabs = storageResult.processedTabs || {};
+                        if (!processedTabs[tabResult[0].id]) {
+                            // Only process if not already processed
+                            await processPage(changes.replacements.newValue);
+                        }
+                    }
                 }
             });
         }

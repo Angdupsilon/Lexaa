@@ -577,6 +577,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
+            // Check if page is already processed
+            if (isProcessed) {
+                showStatus('Page is already processed', 'info');
+                return;
+            }
+            
             showStatus('Processing page...', 'info');
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
@@ -585,12 +591,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             chrome.tabs.sendMessage(tab.id, { action: 'SHOW_MAIN_TEXT_POPUP' });
             chrome.tabs.sendMessage(tab.id, { action: 'PROCESS_PAGE_TEXT', replacements });
             
-            // Mark tab as processed
-            processedTabs[tab.id] = true;
-            await chrome.storage.local.set({ processedTabs });
-            
-            // Update button state
-            updateProcessButtonState();
+            // Note: Processing completion is handled by the message listener below
+            // The tab will be marked as processed when PROCESSING_COMPLETE message is received
         } catch (error) {
             console.error('Error in processPage button handler:', error);
             showStatus(`Error: ${error.message}`, 'error');
@@ -600,20 +602,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Listen for messages from content script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === 'PROCESSING_COMPLETE') {
-            showStatus(`Processed ${message.replacementsMade} replacements`, 'success');
-            // Mark tab as processed
-            if (sender.tab) {
-                chrome.storage.local.get('processedTabs', (result) => {
-                    const processedTabs = result.processedTabs || {};
-                    processedTabs[sender.tab.id] = true;
-                    chrome.storage.local.set({ processedTabs });
-                    updateProcessButtonState();
-                });
+            // Check if page was already processed
+            if (message.alreadyProcessed) {
+                showStatus('Page is already processed', 'info');
+                // Update button state to reflect processed status
+                if (sender.tab) {
+                    chrome.storage.local.get('processedTabs', (result) => {
+                        const processedTabs = result.processedTabs || {};
+                        processedTabs[sender.tab.id] = true;
+                        chrome.storage.local.set({ processedTabs });
+                        updateProcessButtonState();
+                    });
+                }
+            } else {
+                showStatus(`Processed ${message.replacementsMade} replacements`, 'success');
+                // Mark tab as processed
+                if (sender.tab) {
+                    chrome.storage.local.get('processedTabs', (result) => {
+                        const processedTabs = result.processedTabs || {};
+                        processedTabs[sender.tab.id] = true;
+                        chrome.storage.local.set({ processedTabs });
+                        updateProcessButtonState();
+                    });
+                }
+                // Update brain jug count after processing
+                setTimeout(() => {
+                    triggerBrainJugAnimation();
+                }, 500);
             }
-            // Update brain jug count after processing
-            setTimeout(() => {
-                triggerBrainJugAnimation();
-            }, 500);
         } else if (message.type === 'REVERT_COMPLETE') {
             showStatus(`Reverted ${message.revertedCount} replacements`, 'success');
             // Clear processed state
