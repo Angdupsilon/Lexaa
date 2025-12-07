@@ -4,6 +4,18 @@
         // Script already loaded, exit early
         return;
     }
+    
+    // Exit early on restricted pages (chrome://, about:, etc.)
+    const url = window.location.href;
+    if (url.startsWith('chrome://') || 
+        url.startsWith('chrome-extension://') || 
+        url.startsWith('about:') || 
+        url.startsWith('edge://') ||
+        url.startsWith('moz-extension://') ||
+        url.startsWith('safari-extension://')) {
+        return;
+    }
+    
     window.lexaContentScriptLoaded = true;
 
 // Add styles for highlighted text overlays and tooltips
