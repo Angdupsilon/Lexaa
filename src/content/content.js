@@ -573,5 +573,98 @@ function copyTextStyles(fromNode, toNode) {
     toNode.style.letterSpacing = computed.letterSpacing;
     toNode.style.textTransform = computed.textTransform;
     toNode.style.fontStyle = computed.fontStyle;
-} 
+}
+
+// Auto-process pages if enabled
+let autoProcessObserver = null;
+let autoProcessTimeout = null;
+
+async function checkAndAutoProcess() {
+    try {
+        // Check if auto-processing is enabled
+        const result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
+        
+        if (!result.autoProcess || !result.replacements || result.replacements.length === 0 || !result.apiKey) {
+            return; // Auto-processing disabled, no replacements, or no API key
+        }
+        
+        // Wait for page to be fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => processPage(result.replacements), 1000);
+            });
+        } else {
+            // Page already loaded, wait a bit for dynamic content
+            setTimeout(() => processPage(result.replacements), 1000);
+        }
+        
+        // Setup observer for dynamic content if not already set up
+        setupAutoProcessObserver();
+    } catch (error) {
+        console.error('Error in auto-process check:', error);
+    }
+}
+
+// Setup MutationObserver for dynamic content (SPAs, infinite scroll, etc.)
+function setupAutoProcessObserver() {
+    if (autoProcessObserver || !document.body) return;
+    
+    autoProcessObserver = new MutationObserver(async (mutations) => {
+        // Check if significant content was added
+        const hasSignificantChanges = mutations.some(mutation => {
+            return Array.from(mutation.addedNodes).some(node => 
+                node.nodeType === 1 && // Element node
+                (node.tagName === 'P' || (node.querySelector && node.querySelector('p')))
+            );
+        });
+        
+        if (hasSignificantChanges) {
+            const result = await chrome.storage.sync.get(['autoProcess', 'replacements', 'apiKey']);
+            if (result.autoProcess && result.replacements && result.replacements.length > 0 && result.apiKey) {
+                // Debounce: wait 2 seconds after last change
+                clearTimeout(autoProcessTimeout);
+                autoProcessTimeout = setTimeout(() => {
+                    processPage(result.replacements);
+                }, 2000);
+            }
+        }
+    });
+    
+    autoProcessObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
+
+// Run auto-process check
+checkAndAutoProcess();
+
+// Also listen for storage changes to re-process if setting changes
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'sync') {
+        if (changes.autoProcess && changes.autoProcess.newValue) {
+            // Auto-process was enabled, check and process
+            chrome.storage.sync.get(['replacements', 'apiKey'], (result) => {
+                if (result.replacements && result.replacements.length > 0 && result.apiKey) {
+                    processPage(result.replacements);
+                    setupAutoProcessObserver();
+                }
+            });
+        } else if (changes.autoProcess && !changes.autoProcess.newValue) {
+            // Auto-process was disabled, stop observing
+            if (autoProcessObserver) {
+                autoProcessObserver.disconnect();
+                autoProcessObserver = null;
+            }
+            clearTimeout(autoProcessTimeout);
+        } else if (changes.replacements && changes.replacements.newValue) {
+            // Replacements changed, re-process if auto-process is enabled
+            chrome.storage.sync.get(['autoProcess', 'apiKey'], (result) => {
+                if (result.autoProcess && changes.replacements.newValue.length > 0 && result.apiKey) {
+                    processPage(changes.replacements.newValue);
+                }
+            });
+        }
+    }
+});
 })(); 

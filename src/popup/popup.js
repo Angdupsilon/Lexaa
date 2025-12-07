@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statusDiv = document.getElementById('status');
     const apiKeyInput = document.getElementById('apiKey');
     const saveApiKeyBtn = document.getElementById('saveApiKey');
+    const autoProcessCheckbox = document.getElementById('autoProcess');
     const brainJugCount = document.getElementById('brainJugCount');
     let replacements = [];
 
@@ -343,6 +344,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     saveApiKeyBtn.addEventListener('click', saveApiKey);
 
+    // Load auto-process setting from storage
+    async function loadAutoProcessSetting() {
+        try {
+            const result = await chrome.storage.sync.get('autoProcess');
+            autoProcessCheckbox.checked = result.autoProcess || false;
+        } catch (error) {
+            console.error('Error loading auto-process setting:', error);
+        }
+    }
+
+    // Save auto-process setting to storage
+    autoProcessCheckbox.addEventListener('change', async () => {
+        try {
+            await chrome.storage.sync.set({ autoProcess: autoProcessCheckbox.checked });
+            showStatus(
+                autoProcessCheckbox.checked 
+                    ? 'Auto-processing enabled' 
+                    : 'Auto-processing disabled', 
+                'success'
+            );
+        } catch (error) {
+            showStatus('Error saving setting', 'error');
+        }
+    });
+
     // Load replacements from storage
     async function loadReplacements() {
         try {
@@ -541,6 +567,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial load
     await loadReplacements();
     await loadApiKey();
+    await loadAutoProcessSetting();
     renderReplacementsList();
     
     // Trigger brain jug animation on popup open

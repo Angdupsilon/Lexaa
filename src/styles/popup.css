@@ -159,6 +159,30 @@ details[open] .settings-body {
     letter-spacing: 0.05em;
 }
 
+.checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 0 !important;
+    text-transform: none !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    color: var(--text-main) !important;
+    letter-spacing: normal !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.checkbox-label span {
+    user-select: none;
+}
+
 .row-input {
     display: flex;
     gap: 8px;
