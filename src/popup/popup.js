@@ -510,13 +510,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (autoProcessEnabled) {
                 processPageBtn.classList.add('auto-process-enabled');
+                // Remove processed class when auto-process is enabled to use gradient styling
+                processPageBtn.classList.remove('processed');
                 if (!isProcessed) {
                     processBtnText.textContent = 'Automatic';
+                    processPageBtn.disabled = true;
                 } else {
                     processBtnText.textContent = 'Processed';
+                    processPageBtn.disabled = false;
                 }
             } else {
                 processPageBtn.classList.remove('auto-process-enabled');
+                processPageBtn.disabled = false;
                 if (isProcessed) {
                     processPageBtn.classList.add('processed');
                     processBtnText.textContent = 'Processed';
@@ -532,6 +537,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Process current page
     processPageBtn.addEventListener('click', async () => {
+        // Don't process if button is disabled (showing "Automatic")
+        if (processPageBtn.disabled) {
+            return;
+        }
+        
         // Check if we're on a valid page for content scripts
         const isValidPage = await isValidPageForContentScript();
         if (!isValidPage) {
