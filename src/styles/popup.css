@@ -377,6 +377,47 @@ input:focus {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    position: relative;
+}
+
+/* Process Gloss Overlay */
+.process-gloss {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.process-gloss.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.gloss-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 20px;
+    text-align: center;
+}
+
+.gloss-content i {
+    font-size: 1.1rem;
+    color: var(--primary);
 }
 
 /* Modern Toggle Card */

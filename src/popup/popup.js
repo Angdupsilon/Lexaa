@@ -378,6 +378,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Save auto-process setting to storage
     autoProcessCheckbox.addEventListener('change', async () => {
+        // Prevent enabling auto-process if no words exist
+        if (autoProcessCheckbox.checked && replacements.length === 0) {
+            autoProcessCheckbox.checked = false;
+            showStatus('Add at least one word to enable auto-process', 'error');
+            return;
+        }
         try {
             await chrome.storage.sync.set({ autoProcess: autoProcessCheckbox.checked });
             // Also save to local for quick access
@@ -440,6 +446,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderReplacementsList();
             replacementWordInput.value = '';
             showStatus('Replacement added successfully', 'success');
+            // Update gloss and button states
+            updateProcessGloss();
+            updateProcessButtonState();
         } catch (error) {
             showStatus('Error extracting concept', 'error');
         }
@@ -451,6 +460,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveReplacements();
         renderReplacementsList();
         showStatus('Replacement removed', 'success');
+        // Update gloss and button states
+        updateProcessGloss();
+        updateProcessButtonState();
+    }
+
+    // Update process gloss visibility
+    function updateProcessGloss() {
+        const processGloss = document.getElementById('processGloss');
+        if (processGloss) {
+            if (replacements.length === 0) {
+                processGloss.classList.add('visible');
+            } else {
+                processGloss.classList.remove('visible');
+            }
+        }
     }
 
     // Render replacements list
@@ -469,6 +493,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             item.appendChild(removeBtn);
             replacementsList.appendChild(item);
         });
+        // Update gloss visibility when list changes
+        updateProcessGloss();
     }
 
     // Update process button state
@@ -667,7 +693,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadApiKey();
     await loadAutoProcessSetting();
     renderReplacementsList();
+    updateProcessGloss();
     await updateProcessButtonState();
+    
+    // Disable auto-process if no words exist
+    if (replacements.length === 0 && autoProcessCheckbox.checked) {
+        autoProcessCheckbox.checked = false;
+        await chrome.storage.sync.set({ autoProcess: false });
+        await chrome.storage.local.set({ autoProcess: false });
+        updateToggleCardState();
+    }
     
     // Trigger brain jug animation on popup open
     setTimeout(() => {
