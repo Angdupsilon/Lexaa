@@ -1,10 +1,10 @@
 # 🚀 Lexaa
 
-> **Replace concepts in webpages with your own words using AI. Supercharge your language learning!**
+> **Replace concepts in webpages with your own words using AI. Supercharge your learning!**
 
 ![Lexaa Logo](images/Lexaa.svg)
 
-Lexaa turns your everyday browsing into a **dynamic language-learning playground**.  
+Lexaa turns your everyday browsing into a **dynamic learning playground**.  
 By intelligently replacing words and concepts on real web pages with your personal vocabulary list, it helps you master new terms through natural, in-context reading.
 
 ---
