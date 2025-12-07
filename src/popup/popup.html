@@ -36,12 +36,6 @@
                         </button>
                     </div>
                 </div>
-                <div class="input-group">
-                    <label for="autoProcess" class="checkbox-label">
-                        <input type="checkbox" id="autoProcess" aria-label="Automatically process pages">
-                        <span>Automatically process pages on load</span>
-                    </label>
-                </div>
             </div>
         </details>
 
@@ -72,9 +66,17 @@
         </section>
 
         <!-- Process Action -->
-        <button id="processPage" class="process-btn">
-            <i class="fa fa-bolt"></i> Process Page
-        </button>
+        <div class="process-section">
+            <div class="process-toggle-wrapper">
+                <label for="autoProcess" class="checkbox-label-inline">
+                    <input type="checkbox" id="autoProcess" aria-label="Automatically process pages">
+                    <span>Auto-process</span>
+                </label>
+            </div>
+            <button id="processPage" class="process-btn">
+                <i class="fa fa-bolt"></i> <span class="process-btn-text">Process Page</span>
+            </button>
+        </div>
 
         <!-- Word List -->
         <details id="wordListDetails" class="word-list-group" open>

@@ -372,6 +372,43 @@ input:focus {
 .status.error { color: var(--error); }
 .status.info { color: var(--text-muted); }
 
+/* Process Section */
+.process-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.process-toggle-wrapper {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.checkbox-label-inline {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin: 0 !important;
+    text-transform: none !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    color: var(--text-main) !important;
+    letter-spacing: normal !important;
+    padding: 4px 0;
+}
+
+.checkbox-label-inline input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary);
+}
+
+.checkbox-label-inline span {
+    user-select: none;
+}
+
 /* Process Button */
 .process-btn {
     width: 100%;
@@ -399,6 +436,34 @@ input:focus {
 
 .process-btn:active {
     transform: translateY(0);
+}
+
+.process-btn.processed {
+    background: #000000;
+    color: white;
+}
+
+.process-btn.processed:hover {
+    background: #1a1a1a;
+}
+
+.process-btn.auto-process-enabled {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.process-btn.auto-process-enabled:hover {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%);
+    transform: translateY(-2px);
+}
+
+.process-btn.auto-process-enabled.processed {
+    background: #000000;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.process-btn.auto-process-enabled.processed:hover {
+    background: #1a1a1a;
 }
 
 /* Word List */

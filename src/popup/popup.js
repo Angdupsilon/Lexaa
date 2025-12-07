@@ -348,7 +348,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function loadAutoProcessSetting() {
         try {
             const result = await chrome.storage.sync.get('autoProcess');
-            autoProcessCheckbox.checked = result.autoProcess || false;
+            const localResult = await chrome.storage.local.get('autoProcess');
+            // Prefer sync storage, fallback to local
+            autoProcessCheckbox.checked = result.autoProcess || localResult.autoProcess || false;
+            // Ensure both storages are in sync
+            if (result.autoProcess !== undefined) {
+                await chrome.storage.local.set({ autoProcess: result.autoProcess });
+            } else if (localResult.autoProcess !== undefined) {
+                await chrome.storage.sync.set({ autoProcess: localResult.autoProcess });
+            }
         } catch (error) {
             console.error('Error loading auto-process setting:', error);
         }
@@ -358,12 +366,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     autoProcessCheckbox.addEventListener('change', async () => {
         try {
             await chrome.storage.sync.set({ autoProcess: autoProcessCheckbox.checked });
+            // Also save to local for quick access
+            await chrome.storage.local.set({ autoProcess: autoProcessCheckbox.checked });
             showStatus(
                 autoProcessCheckbox.checked 
                     ? 'Auto-processing enabled' 
                     : 'Auto-processing disabled', 
                 'success'
             );
+            // Update button styling
+            updateProcessButtonState();
         } catch (error) {
             showStatus('Error saving setting', 'error');
         }
@@ -449,6 +461,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Update process button state
+    async function updateProcessButtonState() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const result = await chrome.storage.local.get(['processedTabs', 'autoProcess']);
+            const processedTabs = result.processedTabs || {};
+            const isProcessed = processedTabs[tab.id] || false;
+            const autoProcessEnabled = result.autoProcess || false;
+            
+            const processBtnText = processPageBtn.querySelector('.process-btn-text');
+            
+            if (isProcessed) {
+                processPageBtn.classList.add('processed');
+                processBtnText.textContent = 'Processed';
+            } else {
+                processPageBtn.classList.remove('processed');
+                processBtnText.textContent = 'Process Page';
+            }
+            
+            if (autoProcessEnabled) {
+                processPageBtn.classList.add('auto-process-enabled');
+            } else {
+                processPageBtn.classList.remove('auto-process-enabled');
+            }
+        } catch (error) {
+            console.error('Error updating process button state:', error);
+        }
+    }
+
     // Process current page
     processPageBtn.addEventListener('click', async () => {
         if (replacements.length === 0) {
@@ -477,6 +518,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             chrome.tabs.sendMessage(tab.id, { action: 'SHOW_MAIN_TEXT_POPUP' });
             chrome.tabs.sendMessage(tab.id, { action: 'PROCESS_PAGE_TEXT', replacements });
+            
+            // Mark tab as processed
+            const storageResult = await chrome.storage.local.get('processedTabs');
+            const processedTabs = storageResult.processedTabs || {};
+            processedTabs[tab.id] = true;
+            await chrome.storage.local.set({ processedTabs });
+            
+            // Update button state
+            updateProcessButtonState();
         } catch (error) {
             console.error('Error in processPage button handler:', error);
             showStatus(`Error processing page: ${error.message}`, 'error');
@@ -487,6 +537,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.type === 'PROCESSING_COMPLETE') {
             showStatus(`Processed ${message.replacementsMade} replacements`, 'success');
+            // Mark tab as processed
+            if (sender.tab) {
+                chrome.storage.local.get('processedTabs', (result) => {
+                    const processedTabs = result.processedTabs || {};
+                    processedTabs[sender.tab.id] = true;
+                    chrome.storage.local.set({ processedTabs });
+                    updateProcessButtonState();
+                });
+            }
             // Update brain jug count after processing
             setTimeout(() => {
                 triggerBrainJugAnimation();
@@ -569,11 +628,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadApiKey();
     await loadAutoProcessSetting();
     renderReplacementsList();
+    await updateProcessButtonState();
     
     // Trigger brain jug animation on popup open
     setTimeout(() => {
         triggerBrainJugAnimation();
     }, 300);
+    
+    // Listen for tab updates to reset processed state when navigating
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+        if (changeInfo.status === 'loading') {
+            chrome.storage.local.get('processedTabs', (result) => {
+                const processedTabs = result.processedTabs || {};
+                delete processedTabs[tabId];
+                chrome.storage.local.set({ processedTabs });
+            });
+        }
+    });
     
     // Notify content script when popup closes
     window.addEventListener('beforeunload', async () => {
