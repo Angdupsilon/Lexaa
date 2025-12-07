@@ -287,6 +287,68 @@
         document.head.appendChild(brainDropStyles);
     }
 
+// Revert page to original state
+function revertPage() {
+    let revertCount = 0;
+    
+    // Function to merge adjacent text nodes
+    function mergeTextNodes(element) {
+        if (!element) return;
+        let node = element.firstChild;
+        while (node) {
+            const next = node.nextSibling;
+            if (node.nodeType === Node.TEXT_NODE && next && next.nodeType === Node.TEXT_NODE) {
+                node.textContent += next.textContent;
+                element.removeChild(next);
+            } else {
+                node = next;
+            }
+        }
+    }
+    
+    // Handle replacement spans
+    const replacementSpans = document.querySelectorAll('.ai-language-learner-replacement');
+    replacementSpans.forEach(span => {
+        // Get original text from data attribute or tooltip
+        const originalText = span.getAttribute('data-original') || 
+                           (span.querySelector('.tooltip')?.textContent || '');
+        
+        if (originalText && span.parentNode) {
+            // Create a text node with the original text
+            const textNode = document.createTextNode(originalText);
+            // Replace the span with the original text
+            span.parentNode.replaceChild(textNode, span);
+            revertCount++;
+            
+            // Merge adjacent text nodes in the parent
+            mergeTextNodes(span.parentNode);
+        }
+    });
+    
+    // Also handle overlay containers if they exist
+    const overlayContainers = document.querySelectorAll('.ai-language-learner-overlay-container');
+    overlayContainers.forEach(container => {
+        const originalSpan = container.querySelector('.ai-language-learner-overlay-original');
+        
+        if (originalSpan && container.parentNode) {
+            const originalText = originalSpan.textContent || originalSpan.getAttribute('data-original') || '';
+            if (originalText) {
+                const textNode = document.createTextNode(originalText);
+                container.parentNode.replaceChild(textNode, container);
+                revertCount++;
+                
+                // Merge adjacent text nodes in the parent
+                mergeTextNodes(container.parentNode);
+            }
+        }
+    });
+    
+    // Clear processed elements set so page can be processed again
+    processedElements.clear();
+    
+    return { revertedCount: revertCount };
+}
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'PROCESS_PAGE_TEXT') {
@@ -316,6 +378,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 });
             });
         // No return true needed - we're not sending a response via sendResponse
+    } else if (message.action === 'REVERT_PAGE') {
+        const result = revertPage();
+        // Clear processed state for this tab
+        chrome.storage.local.get('processedTabs', (storageResult) => {
+            const processedTabs = storageResult.processedTabs || {};
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) {
+                    delete processedTabs[tabs[0].id];
+                    chrome.storage.local.set({ processedTabs });
+                }
+            });
+        });
+        
+        chrome.runtime.sendMessage({
+            type: 'REVERT_COMPLETE',
+            revertedCount: result.revertedCount
+        });
     } else if (message.command === 'showJugAnimation') {
             // Calculate incremental drops since last popup open
             chrome.storage.local.get(['lastJugCount'], (result) => {
@@ -550,6 +629,8 @@ async function replacePhrasesInElement(element, replacements) {
                         const replacementSpan = document.createElement('span');
                         replacementSpan.textContent = replacement_form;
                         replacementSpan.className = 'ai-language-learner-replacement';
+                        // Store original text in data attribute for easy reversion
+                        replacementSpan.setAttribute('data-original', original_phrase);
                         // Custom tooltip for original text
                         const tooltip = document.createElement('span');
                         tooltip.className = 'tooltip';

@@ -492,16 +492,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Process current page
     processPageBtn.addEventListener('click', async () => {
-        if (replacements.length === 0) {
-            showStatus('No replacements defined', 'error');
-            return;
-        }
-        const result = await chrome.storage.sync.get('apiKey');
-        if (!result.apiKey) {
-            showStatus('Please set your API key first', 'error');
-            return;
-        }
-        
         // Check if we're on a valid page for content scripts
         const isValidPage = await isValidPageForContentScript();
         if (!isValidPage) {
@@ -511,6 +501,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            const storageResult = await chrome.storage.local.get('processedTabs');
+            const processedTabs = storageResult.processedTabs || {};
+            const isProcessed = processedTabs[tab.id] || false;
+            
+            // If already processed, revert instead
+            if (isProcessed) {
+                showStatus('Reverting page...', 'info');
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['src/content/content.js']
+                });
+                chrome.tabs.sendMessage(tab.id, { action: 'REVERT_PAGE' });
+                return;
+            }
+            
+            // Otherwise, process the page
+            if (replacements.length === 0) {
+                showStatus('No replacements defined', 'error');
+                return;
+            }
+            const result = await chrome.storage.sync.get('apiKey');
+            if (!result.apiKey) {
+                showStatus('Please set your API key first', 'error');
+                return;
+            }
+            
             showStatus('Processing page...', 'info');
             await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
@@ -520,8 +536,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             chrome.tabs.sendMessage(tab.id, { action: 'PROCESS_PAGE_TEXT', replacements });
             
             // Mark tab as processed
-            const storageResult = await chrome.storage.local.get('processedTabs');
-            const processedTabs = storageResult.processedTabs || {};
             processedTabs[tab.id] = true;
             await chrome.storage.local.set({ processedTabs });
             
@@ -529,7 +543,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateProcessButtonState();
         } catch (error) {
             console.error('Error in processPage button handler:', error);
-            showStatus(`Error processing page: ${error.message}`, 'error');
+            showStatus(`Error: ${error.message}`, 'error');
         }
     });
 
@@ -550,6 +564,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
                 triggerBrainJugAnimation();
             }, 500);
+        } else if (message.type === 'REVERT_COMPLETE') {
+            showStatus(`Reverted ${message.revertedCount} replacements`, 'success');
+            // Clear processed state
+            if (sender.tab) {
+                chrome.storage.local.get('processedTabs', (result) => {
+                    const processedTabs = result.processedTabs || {};
+                    delete processedTabs[sender.tab.id];
+                    chrome.storage.local.set({ processedTabs });
+                    updateProcessButtonState();
+                });
+            }
         } else if (message.type === 'PROCESSING_ERROR') {
             console.error('Processing error from content script:', message.error);
             showStatus(`Error processing page: ${message.error || 'Unknown error'}`, 'error');

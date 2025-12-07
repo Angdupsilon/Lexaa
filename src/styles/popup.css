@@ -413,7 +413,7 @@ input:focus {
 .process-btn {
     width: 100%;
     padding: 14px;
-    background: var(--text-main);
+    background: #6366f1; /* Solid purple by default */
     color: white;
     border: none;
     border-radius: var(--radius-md);
@@ -426,10 +426,12 @@ input:focus {
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
 }
 
 .process-btn:hover {
-    background: #000000;
+    background: #4f46e5; /* Darker purple on hover */
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
@@ -438,32 +440,57 @@ input:focus {
     transform: translateY(0);
 }
 
-.process-btn.processed {
+/* When processed (and NOT auto-process), button is black */
+.process-btn.processed:not(.auto-process-enabled) {
     background: #000000;
     color: white;
 }
 
-.process-btn.processed:hover {
+.process-btn.processed:not(.auto-process-enabled):hover {
     background: #1a1a1a;
 }
 
+/* Auto-process enabled: animated flowing gradient like HomePod Mini */
 .process-btn.auto-process-enabled {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 30%, #d946ef 60%, #ec4899 100%);
+    background-size: 200% 200%;
     border: 2px solid rgba(255, 255, 255, 0.2);
+    animation: flowGradient 8s ease-in-out infinite;
 }
 
 .process-btn.auto-process-enabled:hover {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%);
     transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 
+/* When processed with auto-process enabled, keep the animated gradient */
 .process-btn.auto-process-enabled.processed {
-    background: #000000;
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    /* Keep the animated gradient even when processed */
+    animation: flowGradient 8s ease-in-out infinite;
 }
 
 .process-btn.auto-process-enabled.processed:hover {
-    background: #1a1a1a;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Flowing gradient animation like HomePod Mini */
+@keyframes flowGradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    25% {
+        background-position: 100% 50%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    75% {
+        background-position: 0% 100%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 /* Word List */
